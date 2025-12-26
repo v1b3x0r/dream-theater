@@ -13,7 +13,7 @@ export default function TeachModal({ selectedCount, teachName, setTeachName, onC
           autoFocus 
           className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xl mb-8 text-center outline-none focus:border-blue-500" 
           placeholder="Name this concept..." 
-          value={teachName} 
+          value={teachName || ""} 
           onChange={(e) => setTeachName(e.target.value)} 
           onKeyDown={(e) => e.key === 'Enter' && onConfirm()} 
         />

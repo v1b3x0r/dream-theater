@@ -1,43 +1,44 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { Music, Play, Pause } from 'lucide-react'
+import { Music, Play, Pause, Sparkles } from 'lucide-react'
 
-export default function GridView({ items, selected, onSelect, onPreview, isStoryMode, apiBase, currentTrack, isPlaying, onPlay }) {
-  // Separate Audio & Images
-  const audioItems = items.filter(i => i.type === 'audio')
-  const imageItems = items.filter(i => i.type === 'image')
+export default function GridView({ items, selected, onSelect, onPreview, apiBase, currentTrack, isPlaying, onPlay }) {
+  const audioItems = useMemo(() => items.filter(i => i.type === 'audio').slice(0, 12), [items])
+  const imageItems = useMemo(() => items.filter(i => i.type === 'image'), [items])
+
+  if (items.length === 0) {
+    return <div className="flex-1 flex items-center justify-center text-white/5 uppercase font-black tracking-[1em]">Empty Space</div>
+  }
 
   return (
-    <div id="gallery-scroll" className="flex-1 overflow-y-auto pt-40 px-12 pb-24 scroll-smooth">
+    <div id="gallery-scroll" className="flex-1 overflow-y-auto pt-40 px-12 pb-48 scroll-smooth scrollbar-hide">
       
-      {/* 🎵 Audio Pill Row */}
+      {/* 🎼 SONIC VIBES */}
       {audioItems.length > 0 && (
-        <div className="mb-8">
-          <p className="text-[10px] font-black text-white/30 uppercase mb-3 tracking-widest pl-1">Sonic Vibes</p>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="mb-16">
+          <div className="flex items-center gap-3 mb-6 pl-2">
+            <div className="bg-blue-600/20 p-1.5 rounded-lg text-blue-400"><Sparkles size={14} /></div>
+            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Sonic Pairings</p>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide">
             {audioItems.map(item => (
-              <AudioPill 
-                key={item.path} item={item} 
-                isActive={currentTrack?.path === item.path} 
-                isPlaying={isPlaying} 
-                onPlay={() => onPlay(item)} 
-              />
+              <AudioPill key={item.path} item={item} isActive={currentTrack?.path === item.path} isPlaying={isPlaying} onPlay={() => onPlay(item)} />
             ))}
           </div>
         </div>
       )}
 
-      {/* 📸 Image Grid */}
-      <div className={isStoryMode ? 'max-w-3xl mx-auto space-y-32' : 'flex flex-wrap gap-4'}>
-        {imageItems.map((item) => (
+      {/* 📸 THE JUSTIFIED OCEAN (Apple Style) */}
+      <div className="flex flex-wrap gap-4 justify-start">
+        {imageItems.map((item, idx) => (
           <MemoryCard 
             key={item.path} 
             item={item} 
-            isStoryMode={isStoryMode} 
-            isSelected={selected.has(item.path)}
-            onSelect={onSelect}
-            onPreview={onPreview}
-            apiBase={apiBase}
+            index={idx}
+            isSelected={selected.has(item.path)} 
+            onSelect={onSelect} 
+            onPreview={onPreview} 
+            apiBase={apiBase} 
           />
         ))}
       </div>
@@ -47,38 +48,40 @@ export default function GridView({ items, selected, onSelect, onPreview, isStory
 
 function AudioPill({ item, isActive, isPlaying, onPlay }) {
   return (
-    <div className={`flex items-center gap-3 border px-4 py-2 rounded-full min-w-[200px] transition-all cursor-pointer group ${isActive ? 'bg-blue-600/20 border-blue-500' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
-         onClick={onPlay}>
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 ${isActive ? 'bg-blue-500 text-white' : 'bg-blue-600/20 text-blue-400'}`}>
-        {isActive && isPlaying ? <Pause size={12} fill="currentColor"/> : <Play size={12} fill="currentColor" className="ml-0.5"/>}
+    <div onClick={onPlay} className={`flex items-center gap-4 border px-6 py-3.5 rounded-full min-w-[260px] transition-all cursor-pointer shadow-xl backdrop-blur-3xl ${isActive ? 'bg-blue-600/30 border-blue-500' : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.08]'}`}>
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${isActive ? 'bg-white text-blue-600' : 'bg-blue-600 text-white'}`}>
+        {isActive && isPlaying ? <Pause size={18} fill="currentColor"/> : <Play size={18} fill="currentColor" className="ml-1"/>}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-xs font-bold truncate max-w-[120px] ${isActive ? 'text-blue-400' : 'text-white'}`}>{item.metadata?.title || item.display_path.split('/').pop()}</p>
-        <p className="text-[9px] font-black uppercase text-white/30 tracking-widest truncate">{item.metadata?.artist || 'Unknown'}</p>
+        <p className="text-[11px] font-bold text-white truncate">{item.metadata?.title || item.display_path.split('/').pop()}</p>
+        <p className="text-[9px] font-black opacity-30 uppercase tracking-tighter truncate">{item.metadata?.artist || 'Ambient'}</p>
       </div>
     </div>
   )
 }
 
-function MemoryCard({ item, isStoryMode, isSelected, onSelect, onPreview, apiBase }) {
-  const imgUrl = item.thumb ? `${apiBase}${item.thumb}` : `${apiBase}/raw/${item.display_path.split('/').map(encodeURIComponent).join('/')}`
+function MemoryCard({ item, isSelected, onSelect, onPreview, apiBase, index }) {
+  // 🛡️ Master URL Sync: Use whatever the backend says is the right URL
+  const imgUrl = item.thumb ? `${apiBase}${item.thumb}` : `${apiBase}${item.raw_url}`
+  const isHero = item.score > 0.3
+  
   return (
-    <div className={`relative cursor-zoom-in group ${isStoryMode ? 'w-full' : 'h-64 flex-grow'}`} style={{ contentVisibility: 'auto' }} onClick={() => onPreview(item)}>
-      <div className={`h-full w-full relative overflow-hidden rounded-[2rem] transition-all duration-700 ${isSelected ? 'ring-2 ring-blue-500 scale-90 shadow-[0_0_40px_rgba(37,99,235,0.3)]' : 'border border-white/5 group-hover:border-white/20'}`}>
-        <img src={imgUrl} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-110" />
-        
-        {item.tags && item.tags.length > 0 && (
-          <div className="absolute bottom-4 left-4 flex flex-wrap gap-1">
-            {item.tags.map(tag => (
-              <span key={tag} className="bg-blue-600/80 backdrop-blur-md text-[8px] font-black uppercase px-2 py-1 rounded-md tracking-widest border border-white/10">{tag}</span>
-            ))}
-          </div>
-        )}
-
-        <div onClick={(e) => { e.stopPropagation(); onSelect(item.path); }} className={`absolute top-5 right-5 w-8 h-8 rounded-full border border-white/20 backdrop-blur-xl flex items-center justify-center transition-all duration-500 ${isSelected ? 'bg-blue-500 border-blue-500' : 'opacity-0 group-hover:opacity-100 hover:scale-110'}`}>
-          <div className="w-2 h-2 bg-white rounded-full shadow-lg" />
+    <motion.div 
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.01 }}
+      className={`relative cursor-zoom-in group ${isHero ? 'h-96 flex-grow' : 'h-64 flex-grow'} min-w-[200px]`}
+      onClick={() => onPreview(item)}
+    >
+      <div className={`h-full w-full relative overflow-hidden rounded-[2rem] transition-all duration-700 ${isSelected ? 'ring-2 ring-blue-500 scale-90' : 'border border-white/5 group-hover:border-white/20'}`}>
+        <img 
+          src={imgUrl} 
+          loading="lazy" 
+          className="h-full w-full object-cover transition-transform duration-[2s] group-hover:scale-110" 
+          style={{ imageOrientation: 'from-image' }} // 🛡️ FORCE BROWSER TO RESPECT EXIF
+        />
+        <div onClick={(e) => { e.stopPropagation(); onSelect(item.path); }} className={`absolute top-5 right-5 w-8 h-8 rounded-full border border-white/20 backdrop-blur-2xl flex items-center justify-center transition-all ${isSelected ? 'bg-blue-500' : 'opacity-0 group-hover:opacity-100 shadow-lg'}`}>
+          <div className="w-2 h-2 bg-white rounded-full" />
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

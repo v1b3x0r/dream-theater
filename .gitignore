@@ -18,6 +18,8 @@ DreamBox/
 .thumbs/
 legacy_node/
 legacy_js/
+tests/screenshots
+tests/journey_logs
 
 # IDE
 .vscode/

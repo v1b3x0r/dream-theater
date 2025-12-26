@@ -31,10 +31,11 @@ export default function App() {
   const [cameraTarget, setCameraTarget] = useState(null)
   const [selected, setSelected] = useState(new Set())
 
-  // Logic Hooks (No scanProgress here! It's isolated in sub-components)
+  // --- Logic Hooks ---
   const { stats, identities, discovery, refresh } = useDreamSystem(API_BASE)
   const { items, setItems, query, setQuery, threshold, setThreshold, handleSearch } = useSearchEngine(API_BASE, setStatus, setIsStoryMode, setCurrentTrack, setIsPlaying)
 
+  // 🛡️ GALAXY DATA MANAGEMENT
   const [galaxyData, setGalaxyData] = useState([])
   const fetchGalaxy = useCallback(async () => {
     try {
@@ -43,9 +44,10 @@ export default function App() {
     } catch (e) { }
   }, [])
 
+  // Initial Boot Sequence
   useEffect(() => { 
     fetchGalaxy()
-    handleSearch('', true) 
+    handleSearch('', true) // Load latest memories + auto music
   }, [handleSearch, fetchGalaxy])
 
   const playTrack = (track) => {
@@ -54,26 +56,21 @@ export default function App() {
   }
 
   const handleIdentityClick = useCallback((name) => {
-    setQuery(name); setIsGalaxyView(false); handleSearch(name);
+    setQuery(name); setIsGalaxyView(true); handleSearch(name);
   }, [handleSearch])
 
   const handleQuickTeach = async (path, name) => {
     try {
       await axios.post(`${API_BASE}/api/identities/teach`, { name, anchors: [path] })
-      refresh(); setStatus(`Identity Linked: ${name}`)
-    } catch (e) { setStatus('Link Failed') }
-  }
-
-  const toggleSelect = (path) => {
-    const next = new Set(selected);
-    next.has(path) ? next.delete(path) : next.add(path);
-    setSelected(next);
+      refresh(); // Update sidebar counts
+      setStatus(`AI Learned: ${name}`)
+    } catch (e) { setStatus('Teach Failed') }
   }
 
   return (
     <div className="flex h-screen bg-black text-white font-sans overflow-hidden relative">
       
-      {/* 🌌 Atmospheric Backdrop */}
+      {/* 🌌 Neo-Glass Atmosphere */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] bg-blue-600/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-purple-600/10 rounded-full blur-[100px]" />
@@ -104,28 +101,30 @@ export default function App() {
         />
       </div>
 
-      <main className={`flex-1 flex flex-col relative z-10 min-w-0 overflow-hidden transition-all duration-1000 ${isGalaxyView ? 'translate-x-[20%] opacity-0 pointer-events-none scale-95' : 'translate-x-0 opacity-100 scale-100'}`}>
+      <main className={`flex-1 flex flex-col relative z-10 min-w-0 overflow-hidden transition-all duration-1000 ${isGalaxyView ? 'translate-x-[20%] opacity-0 pointer-events-none scale-95' : 'translate-x-0 opacity-100'}`}>
         <Header query={query || ""} setQuery={setQuery} onSearch={(v) => { setIsGalaxyView(false); handleSearch(v); }} threshold={threshold} setThreshold={setThreshold} selectedCount={selected.size} onTeach={() => setShowTeachModal(true)} onWeave={async () => { const res = await axios.post(`${API_BASE}/api/weave`, { anchors: Array.from(selected) }); setItems(res.data); setIsStoryMode(true); }} />
         <div className="flex-1 flex overflow-hidden">
-          <GridView items={items} selected={selected} onSelect={toggleSelect} onPreview={setPreviewItem} apiBase={API_BASE} currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack} />
+          <GridView items={items} selected={selected} onSelect={(path) => { const next = new Set(selected); next.has(path) ? next.delete(path) : next.add(path); setSelected(next); }} onPreview={setPreviewItem} isStoryMode={isStoryMode} apiBase={API_BASE} currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack} />
         </div>
       </main>
 
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-2xl border border-white/10 px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest text-white/30 z-40 flex items-center gap-3 shadow-2xl">
+      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-2xl border border-white/10 px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest text-white/30 z-40 flex items-center gap-3">
         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />{status}
       </div>
 
       <AnimatePresence>
         {previewItem && (
           <Inspector 
-            previewItem={previewItem} onClose={() => setPreviewItem(null)} 
+            previewItem={previewItem} 
+            onClose={() => setPreviewItem(null)} 
             onLoom={async (p) => {
               setStatus(`🧵 Weaving scene...`); setPreviewItem(null);
               const res = await axios.get(`${API_BASE}/api/search/seed?path=${encodeURIComponent(p)}`);
-              setItems(res.data); setIsGalaxyView(false);
+              setItems(res.data); setIsGalaxyView(true);
             }} 
-            apiBase={API_BASE} onQuickTeach={handleQuickTeach} knownIdentities={identities}
-            currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack}
+            apiBase={API_BASE}
+            onQuickTeach={handleQuickTeach}
+            knownIdentities={identities}
           />
         )}
         {showTeachModal && <TeachModal selectedCount={selected.size} teachName={teachName || ""} setTeachName={setTeachName} onCancel={() => setShowTeachModal(false)} onConfirm={async () => {
@@ -135,9 +134,7 @@ export default function App() {
       </AnimatePresence>
 
       <AudioPlayer currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack} apiBase={API_BASE} />
-      
-      {/* 🛡️ SELF-SUFFICIENT HUD */}
-      <DebugHUD stats={stats} itemsCount={items.length} identitiesCount={identities.length} apiBase={API_BASE} />
+      <DebugHUD stats={stats} itemsCount={items.length} identitiesCount={identities.length} />
     </div>
   )
 }
