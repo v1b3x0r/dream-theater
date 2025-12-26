@@ -16,7 +16,6 @@ from .scanner import start_watcher
 
 console = Console()
 
-# --- SILENCE NOISY API LOGS ---
 class EndpointFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
@@ -27,22 +26,18 @@ logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     console.print(Panel.fit(
-        "[bold cyan]🌌 DREAM OS KERNEL v7.3.1[/bold cyan]\n[dim]The Autonomous Hierarchical Architect[/dim]",
+        f"[bold cyan]🌌 DREAM OS KERNEL v7.4.1[/bold cyan]\n[dim]Omni-Platform Intelligence: {ai.device.upper()}[/dim]",
         border_style="blue"
     ))
-    # Load Heavy Engines
     ai.load()
     init_db()
-    # Start Real-time File Monitor
     observer = start_watcher()
     yield
-    # Graceful Shutdown
     observer.stop()
     observer.join()
 
 app = FastAPI(lifespan=lifespan)
 
-# --- NUCLEAR CORS POLICY ---
 @app.middleware("http")
 async def add_cors_header(request, call_next):
     if request.method == "OPTIONS":
@@ -63,19 +58,16 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# Attach API
 app.include_router(router, prefix="/api")
-
-# Static File Mounting
 app.mount("/thumbs", StaticFiles(directory=str(THUMB_DIR)), name="thumbs")
 app.mount("/raw", StaticFiles(directory=str(DREAM_BOX)), name="raw")
 
-# Optional: Mount built frontend
 frontend_dist = BASE_DIR / "system" / "frontend-app" / "dist"
 if frontend_dist.exists():
     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
 else:
-    console.print("[yellow]⚠️  Frontend dist not found. Operating in API mode (Port 8000).[/yellow]")
+    console.print("[yellow]⚠️  Frontend dist not found. Operating in API mode.[/yellow]")
 
 if __name__ == "__main__":
+    # 0.0.0.0 allows access from other devices in the local network (iPad/Phone)
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True, log_level="warning")
