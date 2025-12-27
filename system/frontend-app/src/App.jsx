@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, memo } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import axios from 'axios'
 
 // Components
@@ -31,7 +31,7 @@ export default function App() {
   const [cameraTarget, setCameraTarget] = useState(null)
   const [selected, setSelected] = useState(new Set())
 
-  // Logic Hooks (No scanProgress here! It's isolated in sub-components)
+  // Logic Hooks
   const { stats, identities, discovery, refresh } = useDreamSystem(API_BASE)
   const { items, setItems, query, setQuery, threshold, setThreshold, handleSearch } = useSearchEngine(API_BASE, setStatus, setIsStoryMode, setCurrentTrack, setIsPlaying)
 
@@ -71,12 +71,14 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-black text-white font-sans overflow-hidden relative">
+    <div className="flex h-screen bg-[#0a0a0a] text-white/90 font-sans overflow-hidden relative selection:bg-white/20">
       
-      {/* 🌌 Atmospheric Backdrop */}
+      {/* 🌌 Apple Spatial Atmosphere (Subtle & Deep) */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] bg-blue-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-purple-600/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-[80vw] h-[80vw] bg-white/[0.03] rounded-full blur-[150px]" />
+        <div className="absolute bottom-[-30%] right-[-10%] w-[70vw] h-[70vw] bg-blue-500/[0.02] rounded-full blur-[120px]" />
+        {/* Noise Texture */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
       </div>
 
       <AnimatePresence>
@@ -107,12 +109,18 @@ export default function App() {
       <main className={`flex-1 flex flex-col relative z-10 min-w-0 overflow-hidden transition-all duration-1000 ${isGalaxyView ? 'translate-x-[20%] opacity-0 pointer-events-none scale-95' : 'translate-x-0 opacity-100 scale-100'}`}>
         <Header query={query || ""} setQuery={setQuery} onSearch={(v) => { setIsGalaxyView(false); handleSearch(v); }} threshold={threshold} setThreshold={setThreshold} selectedCount={selected.size} onTeach={() => setShowTeachModal(true)} onWeave={async () => { const res = await axios.post(`${API_BASE}/api/weave`, { anchors: Array.from(selected) }); setItems(res.data); setIsStoryMode(true); }} />
         <div className="flex-1 flex overflow-hidden">
-          <GridView items={items} selected={selected} onSelect={toggleSelect} onPreview={setPreviewItem} apiBase={API_BASE} currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack} />
+          <GridView 
+            items={items} selected={selected} onSelect={toggleSelect} onPreview={setPreviewItem} 
+            discovery={discovery} 
+            onSearch={(v) => { setIsGalaxyView(false); handleSearch(v); }}
+            apiBase={API_BASE} currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack} 
+          />
         </div>
       </main>
 
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-2xl border border-white/10 px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest text-white/30 z-40 flex items-center gap-3 shadow-2xl">
-        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />{status}
+      {/* Floating Status Pill */}
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-xl border border-white/10 px-6 py-2 rounded-full text-[10px] font-medium text-white/60 z-40 flex items-center gap-3 shadow-lg">
+        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />{status}
       </div>
 
       <AnimatePresence>
@@ -135,8 +143,6 @@ export default function App() {
       </AnimatePresence>
 
       <AudioPlayer currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack} apiBase={API_BASE} />
-      
-      {/* 🛡️ SELF-SUFFICIENT HUD */}
       <DebugHUD stats={stats} itemsCount={items.length} identitiesCount={identities.length} apiBase={API_BASE} />
     </div>
   )
