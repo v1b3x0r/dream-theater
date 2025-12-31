@@ -1,18 +1,20 @@
-import React, { useRef, useEffect, useState } from 'react'
-import { Play, Pause, SkipBack, SkipForward, Volume2, Maximize2 } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Play, Pause, SkipBack, SkipForward, Volume2, Mic2 } from 'lucide-react'
 
 export default function AudioPlayer({ currentTrack, isPlaying, onPlay, apiBase }) {
   const audioRef = useRef(null)
+  const canvasRef = useRef(null)
   const [progress, setProgress] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const [isHovered, setIsHovered] = useState(false)
+  
+  // Audio Context for Visualizer
+  const contextRef = useRef(null)
+  const analyserRef = useRef(null)
+  const sourceRef = useRef(null)
 
   useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) audioRef.current.play().catch(() => {})
-      else audioRef.current.pause()
-    }
+    if (isPlaying) audioRef.current?.play()
+    else audioRef.current?.pause()
   }, [isPlaying, currentTrack])
 
   useEffect(() => {
@@ -20,89 +22,131 @@ export default function AudioPlayer({ currentTrack, isPlaying, onPlay, apiBase }
     if (!audio) return
 
     const updateProgress = () => setProgress((audio.currentTime / audio.duration) * 100)
-    const updateDuration = () => setDuration(audio.duration)
-    
     audio.addEventListener('timeupdate', updateProgress)
-    audio.addEventListener('loadedmetadata', updateDuration)
-    return () => {
-      audio.removeEventListener('timeupdate', updateProgress)
-      audio.removeEventListener('loadedmetadata', updateDuration)
+    audio.addEventListener('ended', () => onPlay(currentTrack)) // Toggle off/next
+
+    // --- VISUALIZER SETUP ---
+    if (!contextRef.current) {
+        // Init Context on first user interaction (browser policy)
+        const AudioContext = window.AudioContext || window.webkitAudioContext
+        contextRef.current = new AudioContext()
+        analyserRef.current = contextRef.current.createAnalyser()
+        analyserRef.current.fftSize = 64 // 32 bars
+        
+        try {
+            sourceRef.current = contextRef.current.createMediaElementSource(audio)
+            sourceRef.current.connect(analyserRef.current)
+            analyserRef.current.connect(contextRef.current.destination)
+        } catch(e) { console.log("Audio Graph Error:", e) }
     }
-  }, [currentTrack])
+
+    // --- RENDER LOOP ---
+    let animationId
+    const renderFrame = () => {
+        if (!canvasRef.current || !analyserRef.current) return
+        
+        const canvas = canvasRef.current
+        const ctx = canvas.getContext('2d')
+        const bufferLength = analyserRef.current.frequencyBinCount
+        const dataArray = new Uint8Array(bufferLength)
+        
+        analyserRef.current.getByteFrequencyData(dataArray)
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        
+        const barWidth = (canvas.width / bufferLength) * 2.5
+        let barHeight
+        let x = 0
+        
+        for (let i = 0; i < bufferLength; i++) {
+            barHeight = dataArray[i] / 2 // Scale down height
+            
+            // Gradient Color
+            const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0)
+            gradient.addColorStop(0, '#3b82f6') // Blue
+            gradient.addColorStop(1, '#a855f7') // Purple
+            
+            ctx.fillStyle = gradient
+            // Rounded Caps (Fake)
+            ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight)
+            
+            x += barWidth + 2
+        }
+        
+        animationId = requestAnimationFrame(renderFrame)
+    }
+    
+    if(isPlaying) {
+        if (contextRef.current?.state === 'suspended') contextRef.current.resume()
+        renderFrame()
+    } else {
+        cancelAnimationFrame(animationId)
+    }
+
+    return () => {
+        audio.removeEventListener('timeupdate', updateProgress)
+        audio.removeEventListener('ended', () => {})
+        cancelAnimationFrame(animationId)
+    }
+  }, [isPlaying, currentTrack])
 
   if (!currentTrack) return null
 
-  const rawUrl = `${apiBase}/raw/${currentTrack.display_path.split('/').map(encodeURIComponent).join('/')}`
-  const meta = currentTrack.metadata || {}
+  // 🛡️ Safe Metadata Parsing
+  let meta = {}
+  try {
+    meta = typeof currentTrack.metadata === 'string' ? JSON.parse(currentTrack.metadata) : currentTrack.metadata || {}
+  } catch (e) { meta = {} }
 
   return (
-    <div className="fixed bottom-6 inset-x-0 flex justify-center z-50 pointer-events-none">
-      <AnimatePresence>
-        <motion.div 
-          initial={{ y: 100, opacity: 0, scale: 0.9 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: 100, opacity: 0, scale: 0.9 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="pointer-events-auto"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          {/* 🏝️ DYNAMIC ISLAND CONTAINER */}
-          <div className="bg-black/60 backdrop-blur-2xl border border-white/10 rounded-full p-2 pr-6 shadow-2xl flex items-center gap-4 relative overflow-hidden group">
-            
-            {/* Progress Bar (Background) */}
-            <div className="absolute bottom-0 left-0 h-[2px] bg-white/20 w-full">
-              <div className="h-full bg-white transition-all duration-100 ease-linear" style={{ width: `${progress}%` }} />
-            </div>
+    <motion.div 
+      initial={{ y: 100 }}
+      animate={{ y: 0 }}
+      onClick={() => { if(contextRef.current?.state === 'suspended') contextRef.current.resume() }}
+      className="fixed bottom-0 left-0 right-0 h-24 bg-[#050505]/90 backdrop-blur-xl border-t border-white/10 z-[100] flex items-center px-8 gap-6"
+    >
+      <audio ref={audioRef} src={`${apiBase}/raw/${currentTrack.path}`} crossOrigin="anonymous" />
 
-            {/* 💿 Album Art (Spinning) */}
-            <div className={`w-12 h-12 rounded-full bg-white/10 flex items-center justify-center relative overflow-hidden ${isPlaying ? 'animate-spin-slow' : ''}`}>
-              {currentTrack.thumb ? (
-                <img src={`${apiBase}${currentTrack.thumb}`} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-4 h-4 bg-white/20 rounded-full" />
-              )}
-              {/* Center hole for vinyl look */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 bg-black rounded-full border border-white/10" />
-              </div>
-            </div>
+      {/* 🖼️ COVER ART */}
+      <div className="w-16 h-16 rounded-lg bg-white/5 overflow-hidden relative group shrink-0">
+        <img src={`${apiBase}/thumbs/music_cover.jpg`} className="w-full h-full object-cover opacity-80" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Mic2 size={20} className="text-white" />
+        </div>
+      </div>
 
-            {/* 🎵 Info */}
-            <div className="flex flex-col min-w-[120px] max-w-[200px]">
-              <span className="text-xs font-bold text-white truncate">{meta.title || currentTrack.display_path.split('/').pop()}</span>
-              <span className="text-[9px] font-medium text-white/50 uppercase tracking-wider truncate">{meta.artist || 'Unknown Frequency'}</span>
-            </div>
+      {/* 🎵 INFO & CONTROLS */}
+      <div className="flex flex-col gap-1 w-64 shrink-0">
+        <h3 className="text-sm font-bold text-white truncate">{meta.title || currentTrack.path.split('/').pop()}</h3>
+        <p className="text-xs text-white/40 truncate">{meta.artist || "Unknown Artist"}</p>
+        
+        <div className="flex items-center gap-4 mt-1">
+            <button className="text-white/50 hover:text-white"><SkipBack size={16} /></button>
+            <button onClick={() => onPlay(currentTrack)} className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:scale-110 transition-transform">
+                {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
+            </button>
+            <button className="text-white/50 hover:text-white"><SkipForward size={16} /></button>
+        </div>
+      </div>
 
-            {/* 🎛️ Controls */}
-            <div className="flex items-center gap-2 pl-2 border-l border-white/10">
-              <button className="p-2 text-white/40 hover:text-white transition-colors"><SkipBack size={16} fill="currentColor" /></button>
-              
-              <button 
-                onClick={() => onPlay(currentTrack)}
-                className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-white/10"
-              >
-                {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
-              </button>
-              
-              <button className="p-2 text-white/40 hover:text-white transition-colors"><SkipForward size={16} fill="currentColor" /></button>
-            </div>
+      {/* 📊 SONIC VISUALIZER (Center Stage) */}
+      <div className="flex-1 h-full relative flex flex-col justify-end pb-6 px-4">
+         <canvas ref={canvasRef} width={600} height={60} className="w-full h-full opacity-80" />
+         
+         {/* Progress Bar (Overlay on visualizer) */}
+         <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5 cursor-pointer hover:h-2 transition-all">
+            <motion.div className="h-full bg-blue-500" style={{ width: `${progress}%` }} />
+         </div>
+      </div>
 
-            {/* Volume / Expand (Hidden by default, show on hover) */}
-            <motion.div 
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: isHovered ? 'auto' : 0, opacity: isHovered ? 1 : 0 }}
-              className="overflow-hidden flex items-center gap-1"
-            >
-              <div className="w-px h-6 bg-white/10 mx-2" />
-              <button className="p-2 text-white/40 hover:text-white transition-colors"><Volume2 size={16} /></button>
-            </motion.div>
+      {/* 🔊 VOLUME */}
+      <div className="w-32 flex items-center gap-2 text-white/50 shrink-0">
+         <Volume2 size={16} />
+         <div className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full w-2/3 bg-white/50" />
+         </div>
+      </div>
 
-          </div>
-
-          <audio ref={audioRef} src={rawUrl} onEnded={() => onPlay(currentTrack)} />
-        </motion.div>
-      </AnimatePresence>
-    </div>
+    </motion.div>
   )
 }

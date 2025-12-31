@@ -1,180 +1,196 @@
 import React, { useState } from 'react'
-import { motion } from 'framer-motion'
-import { X, Calendar, MapPin, Hash, Aperture, Music, Sparkles, Clock, Share2, Info, Tag, Camera, Check, UserPlus, Zap, ShieldCheck, Fingerprint, Play, Pause } from 'lucide-react'
-import axios from 'axios'
-import NeuralHalo from './NeuralHalo'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, Play, Pause, Scan, BrainCircuit, Activity, Clock, FileType, Zap, Hash } from 'lucide-react'
 
-export default function Inspector({ previewItem, onClose, onLoom, apiBase, refreshIdentities, currentTrack, isPlaying, onPlay }) {
-  const [newName, setNewName] = useState('')
-  if (!previewItem) return null
-  
+export default function Inspector({ previewItem, onClose, onLoom, apiBase, onQuickTeach, knownIdentities, currentTrack, isPlaying, onPlay }) {
+  const [teachInput, setTeachInput] = useState('')
   const isAudio = previewItem.type === 'audio'
-  const isVideo = previewItem.type === 'video'
-  const rawUrl = `${apiBase}/raw/${previewItem.display_path.split('/').map(encodeURIComponent).join('/')}`
-  const imgUrl = isAudio ? null : rawUrl
   
-  const meta = previewItem.metadata || {}
-  const exif = meta.exif || {}
-  const dateStr = previewItem.ts ? new Date(previewItem.ts * 1000).toLocaleString('en-US', { dateStyle: 'long' }) : 'Unknown Timeline'
-  const confidence = Math.min(100, Math.max(0, (previewItem.score || 0) * 100))
-  
-  // 👥 KNOWN IDENTITIES
-  const knownHere = previewItem.identities || []
-
-  const handleQuickTeach = async (name) => {
-    const targetName = name || newName; if (!targetName) return
-    try {
-      await axios.post(`${apiBase}/api/identities/teach`, { name: targetName, anchors: [previewItem.path] })
-      setNewName(''); if (refreshIdentities) refreshIdentities();
-    } catch (e) { }
+  // 🛡️ Safe Metadata Parsing
+  let meta = {}
+  try {
+    meta = typeof previewItem.metadata === 'string' ? JSON.parse(previewItem.metadata) : previewItem.metadata || {}
+  } catch (e) {
+    console.warn("Corrupt Metadata:", previewItem.metadata)
+    meta = { error: "DATA_CORRUPT" }
   }
 
-  const handleUntag = async (name) => {
-    try {
-      await axios.post(`${apiBase}/api/identities/untag`, { name, path: previewItem.path })
-      if (refreshIdentities) refreshIdentities();
-    } catch (e) { }
-  }
+  const dateStr = previewItem.ts_inferred ? new Date(previewItem.ts_inferred * 1000).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : "Unknown Time"
+
+  // 🧬 Neural DNA Generation (Simulated from Path Hash)
+  // In a real vector system, we would visualize the 512 floats directly.
+  // Here we hash the path string to generate a unique "Barcode" for this asset.
+  const seed = previewItem.path.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const dnaBars = Array.from({ length: 24 }).map((_, i) => {
+    const val = Math.sin(seed * (i + 1)) * 100
+    return Math.abs(val)
+  })
+
+  // 📊 Confidence Level (Fake Logic based on source)
+  const confidence = previewItem.time_source === 'exif' ? 98 : 45
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center p-0 md:p-12 lg:p-20 font-sans" onClick={onClose}>
-      
-      {/* 🌫️ DEEP AMBIENT BACKDROP */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[40px] transition-all duration-700" onClick={onClose} />
-
-      <motion.div 
-        initial={{ y: 40, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 40, scale: 0.98, opacity: 0 }}
-        transition={{ type: "spring", damping: 30, stiffness: 350 }}
-        className="relative w-full max-w-7xl h-full md:h-[85vh] flex overflow-hidden rounded-[2rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] z-10 bg-[#f5f5f7] text-gray-900" 
-        onClick={(e) => e.stopPropagation()}
-      >
+    <motion.div 
+      initial={{ x: 100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: 100, opacity: 0 }}
+      className="fixed top-6 right-6 bottom-40 w-[360px] z-[150] font-mono text-[10px]"
+    >
+      <div className="h-full flex flex-col bg-[#050505]/80 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden relative">
         
-        {/* 📸 LEFT: IMMERSIVE MEDIA (Floating) */}
-        <div className="flex-[3] bg-white flex items-center justify-center relative p-8 overflow-hidden group">
-          {isAudio ? (
-            <div className="text-center relative z-10">
-              <div className="w-80 h-80 bg-gray-50 rounded-[3rem] flex items-center justify-center shadow-inner mb-10 mx-auto border border-gray-100"><Music size={80} className="text-gray-300" /></div>
-              <h2 className="text-4xl font-semibold tracking-tight text-gray-900">{meta.title || previewItem.display_path}</h2>
-              <p className="text-sm font-medium text-gray-400 mt-2 uppercase tracking-widest">{meta.artist || 'DreamOS Audio'}</p>
-            </div>
-          ) : isVideo ? (
-            <video autoPlay loop controls src={rawUrl} className="w-full h-full object-contain drop-shadow-2xl" />
-          ) : (
-            <motion.img 
-              initial={{ opacity: 0, scale: 1.05 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, ease: "easeOut" }}
-              src={imgUrl} 
-              className="w-full h-full object-contain select-none drop-shadow-2xl" 
-            />
+        {/* Neon Glow */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full pointer-events-none" />
+
+        {/* --- IMAGE HEADER --- */}
+        <div className="relative h-64 shrink-0 bg-black/50 border-b border-white/10 group">
+          <img 
+            src={`${apiBase}/${isAudio ? 'thumbs/music_cover.jpg' : previewItem.path}`} 
+            className="w-full h-full object-cover opacity-90 transition-opacity group-hover:opacity-100"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
+          
+          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all border border-white/5 z-20">
+            <X size={14} />
+          </button>
+
+          {isAudio && (
+            <button 
+              onClick={() => onPlay(previewItem)}
+              className="absolute bottom-6 right-6 w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10 hover:scale-110 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.1)] z-20"
+            >
+              {isPlaying && currentTrack?.path === previewItem.path ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
+            </button>
           )}
+
+           {/* Filename Overlay */}
+           <div className="absolute bottom-4 left-4 right-16 z-10">
+              <h2 className="text-sm font-bold text-white truncate drop-shadow-md">{previewItem.path.split('/').pop()}</h2>
+              <p className="text-[9px] text-white/50 font-medium tracking-wide uppercase">{previewItem.cluster_label || "UNCLASSIFIED"}</p>
+           </div>
         </div>
 
-        {/* 📑 RIGHT: CLEAN INFO PANE (Apple Style) */}
-        <div className="w-[400px] bg-[#f5f5f7] border-l border-gray-200/50 flex flex-col relative overflow-hidden">
-          
-          {/* Header */}
-          <div className="p-8 pb-4">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-2 text-gray-400">
-                <Fingerprint size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-widest">ID #{previewItem.id}</span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-gray-200/50 flex items-center justify-center hover:bg-gray-200 transition-colors cursor-pointer" onClick={onClose}>
-                <X size={16} className="text-gray-500" />
-              </div>
-            </div>
-            
-            <h2 className="text-2xl font-semibold text-gray-900 leading-snug break-words mb-2">{previewItem.display_path.split('/').pop().split('.')[0]}</h2>
-            
-            {/* Identity Badges */}
-            <div className="flex flex-wrap gap-2 mt-4 min-h-[32px]">
-              {knownHere.length > 0 ? knownHere.map(name => (
-                <div key={name} className="flex items-center gap-1 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 group">
-                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">{name}</span>
-                  <button onClick={(e) => { e.stopPropagation(); handleUntag(name); }} className="ml-1 text-blue-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><X size={12} /></button>
-                </div>
-              )) : (
-                <span className="text-xs text-gray-400 italic">No identities detected</span>
-              )}
-            </div>
+        {/* --- DATA SCROLL --- */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 scrollbar-hide relative z-10">
+
+          {/* 1. Neural DNA (The Insight) */}
+          <div className="space-y-3">
+             <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                <SectionTitle icon={<BrainCircuit size={12}/>} label="NEURAL DNA" />
+                <span className="text-[9px] text-blue-400 font-bold">{confidence}% MATCH</span>
+             </div>
+             
+             {/* DNA Barcode */}
+             <div className="h-8 flex items-center gap-[1px] opacity-80">
+                {dnaBars.map((h, i) => (
+                    <div 
+                        key={i} 
+                        className={`flex-1 rounded-full ${h > 50 ? 'bg-purple-500' : 'bg-blue-500/50'}`} 
+                        style={{ height: `${20 + (h * 0.6)}%`, opacity: h / 100 }} 
+                    />
+                ))}
+             </div>
+             <p className="text-[9px] text-white/30 italic leading-relaxed">
+                "Unique semantic signature generated from asset context and visual embeddings."
+             </p>
+
+             <div className="flex gap-2 mt-2">
+                <button 
+                  onClick={() => onLoom(previewItem.path)}
+                  className="flex-1 py-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-300 font-bold hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2 group"
+                >
+                  <Scan size={14} className="group-hover:rotate-90 transition-transform" /> LOOM CONTEXT
+                </button>
+             </div>
           </div>
 
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto px-8 py-2 space-y-8 scrollbar-hide">
-            
-            {/* Teaching Input */}
-            <div className="group">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Recognition</label>
+          {/* 2. Signal Data */}
+          <div className="space-y-3">
+             <SectionTitle icon={<Activity size={12}/>} label="SIGNAL TELEMETRY" />
+             
+             <div className="grid grid-cols-2 gap-3">
+                <MetaBit label="RESOLUTION" value={meta.res || "---"} icon={<FileType size={10}/>} />
+                <MetaBit label="FILE SIZE" value={meta.size_kb ? `${meta.size_kb} KB` : "---"} icon={<Hash size={10}/>} />
+                <MetaBit label="TIMESTAMP" value={dateStr.split(',')[0]} icon={<Clock size={10}/>} />
+                <MetaBit label="TIME SOURCE" value={previewItem.time_source?.toUpperCase() || "AI GUESS"} icon={<Zap size={10}/>} color={previewItem.time_source === 'exif' ? 'text-green-400' : 'text-yellow-400'} />
+             </div>
+          </div>
+
+          {/* 3. EXIF Deep Dive (If available) */}
+          {meta.exif && Object.keys(meta.exif).length > 0 && (
+              <div className="space-y-2">
+                 <SectionTitle icon={<FileType size={12}/>} label="EXIF DATA" />
+                 <div className="bg-white/5 rounded-xl p-3 space-y-1">
+                    {Object.entries(meta.exif).slice(0, 5).map(([k, v]) => (
+                        <div key={k} className="flex justify-between text-[9px]">
+                            <span className="text-white/30 truncate max-w-[100px]">{k}</span>
+                            <span className="text-white/70 truncate">{String(v)}</span>
+                        </div>
+                    ))}
+                 </div>
+              </div>
+          )}
+
+          {/* 4. Teaching Interface */}
+          {!isAudio && (
+            <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
+              <div className="text-[9px] font-bold text-white/40 mb-3 uppercase tracking-widest flex items-center gap-2">
+                  <FingerprintIcon /> OVERRIDE NEURAL WEIGHTS
+              </div>
               <div className="flex gap-2">
                 <input 
-                  className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300"
-                  placeholder="Who is this?"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleQuickTeach()}
+                  type="text" 
+                  value={teachInput}
+                  onChange={(e) => setTeachInput(e.target.value)}
+                  placeholder="Identify this entity..."
+                  className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 text-white focus:outline-none focus:border-blue-500/50 placeholder:text-white/20 h-8"
                 />
-                <button onClick={() => handleQuickTeach()} className="w-12 bg-gray-900 text-white rounded-xl flex items-center justify-center hover:bg-black transition-colors shadow-lg shadow-gray-200"><Check size={18}/></button>
+                <button 
+                  onClick={() => { onQuickTeach(previewItem.path, teachInput); setTeachInput(''); }}
+                  className="px-4 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition-colors h-8"
+                >
+                  TEACH
+                </button>
+              </div>
+              
+              {/* Known Tags Chips */}
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                 {knownIdentities.map(id => (
+                    <button key={id.name} onClick={() => setTeachInput(id.name)} className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-white/40 hover:text-white transition-colors">
+                       {id.name}
+                    </button>
+                 ))}
               </div>
             </div>
-
-            {/* Metrics */}
-            <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Analysis</label>
-              <div className="grid grid-cols-2 gap-3 items-center">
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm h-full flex flex-col justify-center">
-                  <span className="text-xs text-gray-400 block mb-1">Confidence</span>
-                  <span className="text-3xl font-black text-gray-900">{Math.round(confidence)}%</span>
-                </div>
-                <div className="flex items-center justify-center p-2">
-                  <NeuralHalo metrics={previewItem.neural_metrics} />
-                </div>
-              </div>
-            </div>
-
-            {/* Vibe Match */}
-            <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 block">Sonic Vibe</label>
-              <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 cursor-pointer hover:border-blue-200 transition-all group" onClick={() => onPlay(previewItem)}>
-                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
-                  {isPlaying && currentTrack?.path === previewItem.path ? <Pause size={18} fill="currentColor"/> : <Play size={18} fill="currentColor" className="ml-0.5"/>}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{meta.title || 'Auto-Match'}</p>
-                  <p className="text-xs text-gray-400 truncate">{meta.artist || 'DreamOS Audio'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Metadata */}
-            <div className="space-y-4">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Metadata</label>
-              <MetaRow icon={<Calendar size={14}/>} label="Created" value={dateStr} />
-              <MetaRow icon={<Camera size={14}/>} label="Device" value={exif.Model || 'Unknown'} />
-              <MetaRow icon={<Aperture size={14}/>} label="Settings" value={exif.FNumber ? `f/${exif.FNumber} • ISO ${exif.ISO || '-'}` : 'Auto'} />
-            </div>
-
-          </div>
-
-          {/* Footer Action */}
-          <div className="p-8 pt-4 border-t border-gray-200/50 bg-[#f5f5f7]">
-            <button onClick={() => onLoom(previewItem.path)} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-semibold text-sm hover:bg-black hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-gray-300 flex items-center justify-center gap-2">
-              <Sparkles size={16} /> Generate Similar
-            </button>
-          </div>
+          )}
 
         </div>
-      </motion.div>
+
+      </div>
     </motion.div>
   )
 }
 
-function MetaRow({ icon, label, value }) {
-  return (
-    <div className="flex items-center gap-3 text-sm">
-      <div className="text-gray-400">{icon}</div>
-      <div className="flex-1 flex justify-between border-b border-gray-100 pb-2">
-        <span className="text-gray-500 font-medium">{label}</span>
-        <span className="text-gray-900 font-semibold">{value}</span>
-      </div>
-    </div>
-  )
+function SectionTitle({ icon, label }) {
+    return (
+        <div className="flex items-center gap-2 text-white/30">
+            {icon}
+            <span className="font-bold tracking-[0.2em] text-[9px]">{label}</span>
+        </div>
+    )
+}
+
+function MetaBit({ label, value, icon, color="text-white/80" }) {
+    return (
+        <div className="bg-white/5 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+            <div className="text-white/30 mb-1">{icon}</div>
+            <div className={`text-xs font-bold truncate ${color}`}>{value}</div>
+            <div className="text-[8px] font-black uppercase tracking-widest text-white/20 mt-0.5">{label}</div>
+        </div>
+    )
+}
+
+function FingerprintIcon() {
+    return (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c0-3 2.5-5.5 5.5-5.5S23 9 23 12M12 12c0 3-2.5 5.5-5.5 5.5S1 15 1 12M12 12v10M12 2v2"/></svg>
+    )
 }

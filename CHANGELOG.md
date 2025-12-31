@@ -1,83 +1,35 @@
-# 📜 The Chronicles of DreamOS
+# 🌌 DreamTheater Changelog
 
-บันทึกการเดินทางและการวิวัฒนาการของระบบปฏิบัติการความทรงจำ (Personal AI Operating System) ตั้งแต่จุดกำเนิดจนถึงปัจจุบัน
+All notable changes to the **DreamTheater** multiverse will be documented in this file.
 
----
+## [7.7.0] - 2025-12-27
+### 🗿 The Face & Video Revolution
+- **Face Engine:** Migrated to **MediaPipe** (Google) for lightning-fast face detection on Apple Silicon.
+    - *Why:* InsightFace/Dlib proved unstable on Python 3.13 + macOS.
+    - *Capability:* Now detects faces in both images and video frames.
+- **Identity System:** Implemented **Hybrid Identity** (MediaPipe Detect + CLIP Embed).
+    - Teaches the AI to recognize specific faces by cropping and embedding them into the semantic vector space.
+- **Video Scanner:** Added Multi-Frame Analysis.
+    - Extracts 3 frames (Start, Middle, End) per video to maximize face detection chances.
+- **UI Features:**
+    - **Hall of Faces:** New `/faces` view to cluster and tag unknown people (Mass Tagging).
+    - **LightBox 2.0:** Full-screen theater mode with "Apple Photos" style info panel.
+    - **Native Video:** LightBox now plays `.mp4/.mov` files natively with loop/autoplay.
+    - **Micro-Feedback:** Added toast notifications and optimistic UI updates for tagging/untagging.
+    - **Omniscient Console:** Added God Mode debug console (Press `~`).
 
-## 🌌 Era 7: The Sentient Awakening (ยุคแห่งความตื่นรู้)
+## [7.6.0] - 2025-12-27
+### 🎭 The Rebranding & Cinema Engine
+- **Branding:** Officially renamed the project from **DreamOS** to **DreamTheater**.
+- **Video Engine:** Integrated **OpenCV** for video asset indexing.
+    - System now extracts the middle frame (50% mark) for visual embedding and thumbnail generation.
+    - Added support for `.mp4`, `.mov`, `.webm`, and `.mkv`.
+- **UI/UX:** Major layout overhaul to "Glassmorphism 2.0".
+    - **Floating Sidebar:** Now detached from edge with neon glow effects.
+    - **Monolith Inspector:** Redesigned Info Panel in LightBox with "Neural DNA" visualization.
+    - **Telemetry HUD:** Added detailed asset breakdown (Images, Audio, Video).
+- **Audio:** Enabled "Voice of God" (macOS native `say`) to announce recognized identities during scanning.
 
-### v7.5.0 - The Intent Separation (Current)
-*   **🔱 Core Philosophy Shift:** เปลี่ยนจากการทำ Weight Balancing มาเป็น **"Index Separation"** แยกการค้นหารูปและเพลงออกจากกันเด็ดขาด
-*   **Grid:** ลบ Timeline Header ออก เปลี่ยนเป็น **Flowing Ocean** (รูปไหลต่อเนื่อง)
-*   **Audio:** คืนชีพ **Sonic Vibes Pill Row** (แถบเพลงแบบ Spotify) ไว้ด้านบนสุดเสมอ
-*   **Search:** ใช้ Logic **Context-First** (เพลง 12 เพลง + รูป 500 ใบ) ห้ามปนกันมั่ว
-
-### v7.4.1 - The Omni-Platform Update
-*   **Engine:** รองรับ **Apple Silicon (M1/M2/M3/M4)** โดยอัตโนมัติ (ใช้ `mps` device)
-*   **Network:** ปลดล็อค `host="0.0.0.0"` เพื่อให้เข้าถึงผ่าน LAN (iPad/iPhone) ได้
-*   **Pathing:** ใช้ `os.path.relpath` และ `chr(92)` จัดการเรื่อง Backslash บน Windows 100%
-
-### v7.4.0 - The Dynamic Awakening
-*   **Discovery:** เลิกใช้ Hardcoded Labels (Nature, Coffee) เปลี่ยนมาใช้ **Dynamic Theme Engine** ที่ AI ตั้งชื่อกลุ่มดาวเองตามบริบท
-*   **Config:** ย้ายค่าคงที่ทั้งหมด (Thresholds, API URLs) ไปไว้ใน Environment Variables
-*   **Mapping:** สร้าง `map_asset` เป็น Single Source of Truth สำหรับการแปลงข้อมูล DB -> JSON
-
-### v7.3.x - The Restoration
-*   **v7.3.7 (Master Plumber):** แก้ปัญหา 404 โดยการใช้ Relative Path ใน DB และส่ง `raw_url` สำเร็จรูปจาก Backend
-*   **v7.3.5 (Perfect Orientation):** บังคับหมุนรูปตาม EXIF (Auto-Rotate) ตั้งแต่ตอนสแกน
-*   **v7.3.2 (Sonic Awakening):** กู้คืนระบบอ่าน Metadata เพลง (Title/Artist) และนำเพลงกลับเข้ามาใน Galaxy UMAP
-
-### v7.2.x - The Aesthetic Finalé
-*   **v7.2.1 (The White Mirror):** เปลี่ยน Inspector เป็นธีมขาวกระจก (High-Key Glass) สไตล์ VisionOS
-*   **v7.2.0 (High-End HUD):** เพิ่ม Resonance Gauge (วงแหวนเปอร์เซ็นต์) และ Telemetry Grid ในหน้า Inspector
-
----
-
-## 🪐 Era 6: The Galactic Physics (ยุคแห่งฟิสิกส์จักรวาล)
-
-### v6.9.x - The Cognitive Gravity
-*   **v6.9.1 (Soft Gravity):** แก้ปัญหา "หลุมดำ" โดยการลดแรงดึงดูดและใช้การ "Zoom Out" แทนการดูดเข้าศูนย์กลาง
-*   **v6.9.0:** เปิดตัวระบบ **Semantic Gravity** ที่ดาวจะวิ่งเข้าหาผู้ใช้ตามความเหมือน (Similarity Score)
-
-### v6.8.x - The Organic Chaos
-*   **v6.8.1:** เปลี่ยนการกระจายตัวของดาวจากทรงกลมสมมาตร เป็น **Gaussian Cloud** ที่ดูเป็นธรรมชาติ
-*   **v6.8.0:** คืนชีพ Galaxy View แบบดั้งเดิม (Star Nodes) ที่มีชีวิตและหายใจได้ (Breathing Animation)
-
-### v6.6 - The Immortal Universe
-*   **Stability:** ย้ายระบบ Polling ไปไว้ใน Sidebar เพื่อแก้ปัญหาหน้าจอกระตุก (Shuttering)
-*   **Visual:** เพิ่มจุดศูนย์กลาง (Sun) และปรับแสง Ambient ให้มองเห็นดาวชัดเจนขึ้น
-
-### v6.0 - The Chimera Vector
-*   **Fusion DNA:** เริ่มใช้เทคนิค **Identity Fusion** (เอา Vector หน้าคนมาผสมกับ Vector รูป) เพื่อความแม่นยำในการค้นหาตัวตน
-*   **Scanner Rewrite:** เขียน `process_scan` ใหม่ให้ทนทานต่อไฟล์เสีย (Try-Except Per File)
-
----
-
-## 🏛️ Era 5: The Structural Foundations (ยุคแห่งโครงสร้าง)
-
-### v5.3 - The Omnivore
-*   **Format Support:** รองรับไฟล์ `.txt`, `.md`, `.mp4` (Video Placeholder), `.webp`
-*   **Text Embedding:** เริ่มอ่านเนื้อหาไฟล์ Text มาทำ Index
-
-### v5.2 - The Sleepwalker
-*   **Dreaming Service:** ระบบ Background Task ที่แอบทำงานตอนเครื่องว่าง (Link Identity เอง)
-*   **Self-Healing:** เริ่มใช้ Puppeteer (The Third Eye) ในการตรวจสอบความสมบูรณ์ของ UI
-
-### v5.1 - The Semantic Loom
-*   **Feature:** เพิ่มปุ่ม **"Craft Scene"** (Seed Search)
-*   **Sieve:** เริ่มระบบกรอง Screenshot (`is_captured`) ออกจาก Timeline หลัก
-
-### v5.0 - The Apple Photos Era
-*   **UI Shift:** เปลี่ยนจาก Galaxy เป็น **Grid-First** เน้นความลื่นไหลและการดูรูป
-*   **Layout:** เริ่มใช้ Masonry Grid และ Timeline Headers (ก่อนจะถูกยกเลิกใน v7.5)
-
----
-
-## 🏚️ Era 4: The Beginning (ยุคบุกเบิก)
-*   **Concept:** เริ่มต้นด้วยไอเดีย "Galaxy of Memories" (Three.js)
-*   **Tech:** Python FastAPI + React Vite
-*   **Early Bugs:** ปัญหาเรื่อง CORS, Path Windows (`\`), และการจัดการ Memory ของ CLIP
-
----
-
-> *"ทุกบั๊กคือบทเรียน ทุก Error คือแรงผลักดัน สู่อนาคตที่ไร้รอยต่อ"*
+## [7.5.2] - 2025-12-27
+### 🚀 MPS Acceleration & Core Stabilization
+- **AI Engine:** Successfully integrated **MPS (Metal Performance Shaders)** for macOS.

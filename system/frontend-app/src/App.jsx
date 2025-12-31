@@ -6,11 +6,14 @@ import axios from 'axios'
 import Sidebar from './components/Sidebar'
 import GridView from './components/GridView'
 import GalaxyView from './components/GalaxyView'
+import FacesView from './components/FacesView'
 import Inspector from './components/Inspector'
+import LightBox from './components/LightBox'
 import TeachModal from './components/TeachModal'
 import Header from './components/Header'
 import AudioPlayer from './components/AudioPlayer'
 import DebugHUD from './components/DebugHUD'
+import OmniscientDebug from './components/OmniscientDebug'
 
 // Hooks
 import { useDreamSystem } from './hooks/useDreamSystem'
@@ -23,6 +26,7 @@ export default function App() {
   const [status, setStatus] = useState('Standby')
   const [isStoryMode, setIsStoryMode] = useState(false)
   const [isGalaxyView, setIsGalaxyView] = useState(true)
+  const [isFacesView, setIsFacesView] = useState(false)
   const [previewItem, setPreviewItem] = useState(null)
   const [showTeachModal, setShowTeachModal] = useState(false)
   const [teachName, setTeachName] = useState('')
@@ -54,7 +58,7 @@ export default function App() {
   }
 
   const handleIdentityClick = useCallback((name) => {
-    setQuery(name); setIsGalaxyView(false); handleSearch(name);
+    setQuery(name); setIsGalaxyView(false); setIsFacesView(false); handleSearch(name);
   }, [handleSearch])
 
   const handleQuickTeach = async (path, name) => {
@@ -100,33 +104,33 @@ export default function App() {
         <Sidebar 
           stats={stats} identities={identities} discovery={discovery} 
           isGalaxyView={isGalaxyView} setIsGalaxyView={setIsGalaxyView}
+          isFacesView={isFacesView} setIsFacesView={setIsFacesView}
           onIdentityClick={handleIdentityClick}
           onDeleteIdentity={async (name) => { if(confirm(`Forget ${name}?`)) { await axios.delete(`${API_BASE}/api/identities/${name}`); refresh(); } }}
           apiBase={API_BASE} 
         />
       </div>
 
-      <main className={`flex-1 flex flex-col relative z-10 min-w-0 overflow-hidden transition-all duration-1000 ${isGalaxyView ? 'translate-x-[20%] opacity-0 pointer-events-none scale-95' : 'translate-x-0 opacity-100 scale-100'}`}>
-        <Header query={query || ""} setQuery={setQuery} onSearch={(v) => { setIsGalaxyView(false); handleSearch(v); }} threshold={threshold} setThreshold={setThreshold} selectedCount={selected.size} onTeach={() => setShowTeachModal(true)} onWeave={async () => { const res = await axios.post(`${API_BASE}/api/weave`, { anchors: Array.from(selected) }); setItems(res.data); setIsStoryMode(true); }} />
+      <main className={`flex-1 flex flex-col relative z-10 min-w-0 overflow-hidden transition-all duration-1000 pl-[300px] ${isGalaxyView ? 'translate-x-[20%] opacity-0 pointer-events-none scale-95' : 'translate-x-0 opacity-100 scale-100'}`}>
+        <Header query={query || ""} setQuery={setQuery} onSearch={(v) => { setIsGalaxyView(false); setIsFacesView(false); handleSearch(v); }} threshold={threshold} setThreshold={setThreshold} selectedCount={selected.size} onTeach={() => setShowTeachModal(true)} onWeave={async () => { const res = await axios.post(`${API_BASE}/api/weave`, { anchors: Array.from(selected) }); setItems(res.data); setIsStoryMode(true); }} />
         <div className="flex-1 flex overflow-hidden">
-          <GridView 
-            items={items} selected={selected} onSelect={toggleSelect} onPreview={setPreviewItem} 
-            discovery={discovery} 
-            onSearch={(v) => { setIsGalaxyView(false); handleSearch(v); }}
-            apiBase={API_BASE} currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack} 
-          />
+          {isFacesView ? (
+             <FacesView apiBase={API_BASE} onTeach={refresh} />
+          ) : (
+             <GridView 
+                items={items} selected={selected} onSelect={toggleSelect} onPreview={setPreviewItem} 
+                discovery={discovery} 
+                onSearch={(v) => { setIsGalaxyView(false); setIsFacesView(false); handleSearch(v); }}
+                apiBase={API_BASE} currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack} 
+             />
+          )}
         </div>
       </main>
 
-      {/* Floating Status Pill */}
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-xl border border-white/10 px-6 py-2 rounded-full text-[10px] font-medium text-white/60 z-40 flex items-center gap-3 shadow-lg">
-        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />{status}
-      </div>
-
       <AnimatePresence>
         {previewItem && (
-          <Inspector 
-            previewItem={previewItem} onClose={() => setPreviewItem(null)} 
+          <LightBox 
+            item={previewItem} onClose={() => setPreviewItem(null)} 
             onLoom={async (p) => {
               setStatus(`🧵 Weaving scene...`); setPreviewItem(null);
               const res = await axios.get(`${API_BASE}/api/search/seed?path=${encodeURIComponent(p)}`);
@@ -144,6 +148,14 @@ export default function App() {
 
       <AudioPlayer currentTrack={currentTrack} isPlaying={isPlaying} onPlay={playTrack} apiBase={API_BASE} />
       <DebugHUD stats={stats} itemsCount={items.length} identitiesCount={identities.length} apiBase={API_BASE} />
+      
+      {/* 👁️ GOD MODE: Press `~` to toggle */}
+      <OmniscientDebug godObject={{
+        focus: { previewItem, currentTrack, selected: Array.from(selected) },
+        universe: { stats, identities, discovery },
+        search: { query, count: items.length, threshold, status },
+        system: { isStoryMode, isGalaxyView, showTeachModal }
+      }} />
     </div>
   )
 }

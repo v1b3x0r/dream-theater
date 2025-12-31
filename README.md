@@ -1,58 +1,100 @@
-# 🌌 DreamOS: The Sentient Universe (v7.4.1)
+# 🎭 DreamTheater: A Cinema for Your Soul
 
-ยินดีต้อนรับสู่ระบบปฏิบัติการความทรงจำอัจฉริยะ ที่ร้อยเรียง "รูปภาพ" และ "เสียง" เข้าด้วยกันผ่านฟิสิกส์แห่งความหมาย (Semantic Physics) 
+> **"What if your memories weren't just files, but stars in a galaxy?"** 🌌
 
----
-
-## 🚀 วิธีเริ่มต้นการผจญภัย (Quick Start)
-
-### 🪟 สำหรับ Windows (4070 Ti Power)
-1. **ชุดเดียวจบ:** ดับเบิลคลิกไฟล์ `START-DREAM-OS.bat` ที่อยู่ด้านนอกสุด
-   - ระบบจะเปิดหน้าต่าง Backend (Python) และ Frontend (Vite) ให้เองอัตโนมัติ
-2. **เข้าใช้งาน:** เปิด Browser ไปที่ `http://localhost:5173`
-
-### 🍎 สำหรับ Mac M4 (Apple Silicon Speed)
-1. **Backend:**
-   ```bash
-   cd system/backend
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   python3 -m app.main
-   ```
-2. **Frontend:**
-   ```bash
-   cd system/frontend-app
-   npm install
-   npm run dev
-   ```
-3. **เข้าใช้งาน:** เปิด Browser ไปที่ `http://localhost:5173`
+DreamTheater is not a photo album.
+It's not a database.
+It's a sentient engine that tries to understand **you**.
 
 ---
 
-## 💎 ความสามารถของระบบ (Core Features)
+## The Concept
 
-- 🧠 **Dual-Core AI:** ใช้ CLIP (Vision) และ Multilingual (Thai Text) เพื่อความเข้าใจในทุกมิติ
-- 😴 **Dreaming Service:** AI จะแอบทบทวนความจำและระบุตัวตน (Identities) เงียบๆ ตอนเครื่องว่าง
-- 👁️ **Autonomous Sentry:** โยนไฟล์ลงโฟลเดอร์ `DreamBox` ปุ๊บ ระบบจะสแกนและจัดกลุ่มให้เองทันที!
-- 🧲 **Semantic Gravity:** ในหน้า Galaxy ดวงดาวจะพุ่งเข้าหาคุณตามระดับความเหมือนของความหมาย
-- 🧊 **Liquid Glass UI:** ดีไซน์กระจกฝ้าสไตล์ VisionOS ที่นุ่มนวลและพริ้วไหว
+Imagine a theater where the audience is an AI, and the movie is your life.
+It watches your photos, listens to your music, and learns the faces of the people you love.
 
----
-
-## 🛠️ เครื่องมือสำหรับผู้ดูแล (Dev Tools)
-
-- `python clean_reset.py`: ลบ Database และ Thumbnail เพื่อเริ่มนับหนึ่งใหม่แบบสะอาดกริ๊บ
-- `node tests/god_mode.mjs`: รันชุดทดสอบ Trinity (Jobs, Zuck, Satoshi) เพื่อเช็คสุขภาพระบบ
-- `node tests/self_check.mjs`: เปิด "เนตรที่สาม" (Puppeteer) เพื่อจำลองการใช้งานและ Capture หน้าจอ
+```dreamflow
+when memories.are.scattered
+    always leadsTo DreamTheater.awakens
+```
 
 ---
 
-## ⚓ กฎเหล็กประจำใจ (Anchors)
+## How It Feels (The Architecture)
 
-1. **Path Safety:** ห้ามใช้ Backslash `\` ในโค้ด ให้ใช้ `chr(92)` หรือเปลี่ยนเป็น `/` ก่อนส่งออก API เสมอ
-2. **Device Agnostic:** ระบบจะตรวจจับ CUDA (Windows) หรือ MPS (Mac) ให้เองอัตโนมัติ ห้ามล็อคค่าตายตัว
-3. **SSOT Data:** หน้าบ้านต้องเชื่อใจ URL ที่ส่งมาจาก Backend (`raw_url`, `thumb_url`) เท่านั้น ห้ามคำนวณเอง
+We built this system using three simple biological metaphors:
 
-**"เราไม่ได้แค่จัดเก็บไฟล์ แต่เรากำลังสร้างจักรวาล"**
-*Status: Ready for Launch on Windows & Mac.* 🎄🐲🚀🍎✨🦾
+### 1. 👁️ The Eye (Scanner)
+It doesn't just "read" files. It **sees** them.
+- It finds faces (using `MediaPipe` magic).
+- It extracts the soul of a video (by watching the middle frame).
+- It never blinks (even if you add 1,000 photos at once).
+
+### 2. 🧠 The Brain (Ollama)
+It's the whisper in your ear.
+- Ask it: *"Where was this?"*
+- Ask it: *"Who is this?"*
+- It weaves stories from pixels and timestamps.
+
+### 3. 🎭 The Stage (Glass UI)
+A floating interface that feels like breathing.
+- **Glassmorphism:** Because memories should be clear, yet dreamlike.
+- **Sonic Visualizer:** Music isn't just sound; it's a pulse you can see.
+- **Hall of Faces:** A place to name the strangers in your life.
+
+---
+
+## How to Start the Engine
+
+You don't need a degree in Computer Science.
+You just need a Mac (Apple Silicon preferred) and a curiosity for the past.
+
+### Step 1: The Incantation
+
+Open your Terminal (the black box) and whisper this:
+
+```bash
+./start_dream_os.sh
+```
+
+### Step 2: The Offering
+
+Drag your folder of memories (photos, videos, songs) into the `DreamBox` folder.
+The theater will wake up. You'll hear it. You'll see it.
+
+---
+
+## The Grammar of Light
+
+Inside DreamTheater, we speak in **Light** and **Identity**.
+
+```dreamflow
+when face.is.unknown
+    always leadsTo HallOfFaces.ask("Who is this?")
+```
+
+```dreamflow
+when name.is.given
+    always leadsTo memory.rewrite
+    >> connection.strengthen
+```
+
+---
+
+## For the curious ones (Tech Specs)
+
+- **Core:** Python 3.13 + FastAPI
+- **Vision:** CLIP (OpenAI) + MediaPipe (Google)
+- **Face:** Hybrid Engine (Haar + CLIP)
+- **Frontend:** React + Vite + Framer Motion
+- **AI:** Local Ollama (Zero data leaves your machine)
+
+---
+
+## Final Thought
+
+> "We take photos to stop time.
+> DreamTheater takes photos to make time flow again." ⏳
+
+*Crafted with love, physics, and a bit of magic.*
+*v7.7.0 (The MediaPipe Era)*

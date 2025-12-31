@@ -12,9 +12,89 @@ from urllib.parse import quote
 from .config import DREAM_BOX, THUMB_DIR
 from .db import get_conn
 from .models import ai
+from .face_engine import face_ai
+from .ollama_engine import ollama_ai
 from .scanner import process_scan, scan_status, thumb_name, get_backslash
+from PIL import Image, ImageOps
+import cv2
+import traceback
 
 router = APIRouter()
+
+@router.get("/ai/status")
+async def get_ai_status():
+    return {
+        "available": ollama_ai.available,
+        "chat_model": ollama_ai.chat_model,
+        "vision_model": ollama_ai.vision_model,
+        "models": ollama_ai.list_models()
+    }
+
+@router.post("/system/backup")
+async def backup_system():
+    try:
+        backup_path = DREAM_BOX / "_dream_memory.json"
+        with get_conn() as conn:
+            # 1. Export Identities
+            ids = [dict(r) for r in conn.execute("SELECT name, vector, face_vector, count, cover_path FROM identities").fetchall()]
+            for i in ids:
+                if i['vector']: i['vector'] = i['vector'].hex() # Hex string for JSON
+                if i['face_vector']: i['face_vector'] = i['face_vector'].hex()
+            
+            # 2. Export Links
+            links = [dict(r) for r in conn.execute("SELECT identity_links.asset_path, identities.name FROM identity_links JOIN identities ON identity_links.identity_id = identities.id").fetchall()]
+            
+            data = {"identities": ids, "links": links, "version": "7.7.0", "timestamp": int(time.time())}
+            
+            with open(backup_path, 'w') as f:
+                json.dump(data, f, indent=2)
+                
+        return {"status": "ok", "path": str(backup_path), "stats": f"{len(ids)} people, {len(links)} links"}
+    except Exception as e: return {"status": "error", "msg": str(e)}
+
+@router.post("/system/restore")
+async def restore_system():
+    try:
+        backup_path = DREAM_BOX / "_dream_memory.json"
+        if not backup_path.exists(): return {"status": "error", "msg": "No backup found"}
+        
+        with open(backup_path, 'r') as f:
+            data = json.load(f)
+            
+        with get_conn() as conn:
+            # 1. Restore Identities
+            for i in data.get('identities', []):
+                vec = bytes.fromhex(i['vector']) if i.get('vector') else None
+                face_vec = bytes.fromhex(i['face_vector']) if i.get('face_vector') else None
+                conn.execute("INSERT OR IGNORE INTO identities (name, vector, face_vector, count, cover_path) VALUES (?,?,?,?,?)", 
+                             (i['name'], vec, face_vec, i['count'], i['cover_path']))
+            
+            # 2. Restore Links
+            for l in data.get('links', []):
+                # Find ID
+                row = conn.execute("SELECT id FROM identities WHERE name = ?", (l['name'],)).fetchone()
+                if row:
+                    conn.execute("INSERT OR IGNORE INTO identity_links (identity_id, asset_path) VALUES (?,?)", (row['id'], l['asset_path']))
+            
+            conn.commit()
+        return {"status": "restored"}
+    except Exception as e: return {"status": "error", "msg": str(e)}
+
+@router.post("/ai/ask")
+async def ask_ai(req: dict = Body(...)):
+    prompt = req.get('prompt', '')
+    image_path = req.get('image_path')
+    
+    # 1. Vision Mode
+    if image_path and ollama_ai.vision_model:
+        # Resolve path
+        full_path = DREAM_BOX / image_path
+        if full_path.exists():
+            return {"response": ollama_ai.describe(str(full_path), prompt)}
+        return {"response": "Image not found."}
+    
+    # 2. Chat Mode
+    return {"response": ollama_ai.chat([{'role': 'user', 'content': prompt}])}
 
 def web_path(p):
     return str(p).replace(get_backslash(), "/")
@@ -156,7 +236,8 @@ async def search(q: str = "", threshold: float = 0.15):
                 break
         if target_vec is None: target_vec = ai.encode_text(q)
         
-        all_assets = conn.execute("SELECT * FROM assets WHERE is_captured = 0").fetchall()
+        # 🛡️ SAFETY FIX: Filter out NULL vectors
+        all_assets = conn.execute("SELECT * FROM assets WHERE is_captured = 0 AND vector IS NOT NULL").fetchall()
 
     if not all_assets: return []
     
@@ -214,11 +295,42 @@ async def teach_identity(req: dict = Body(...)):
             id_id = row['id']
             for p in anchors:
                 conn.execute("INSERT OR IGNORE INTO identity_links (identity_id, asset_path) VALUES (?, ?)", (id_id, p))
-            rows = conn.execute("SELECT assets.vector FROM assets JOIN identity_links ON assets.path = identity_links.asset_path WHERE identity_links.identity_id = ?", (id_id,)).fetchall()
+            rows = conn.execute("SELECT assets.vector, assets.path FROM assets JOIN identity_links ON assets.path = identity_links.asset_path WHERE identity_links.identity_id = ?", (id_id,)).fetchall()
             if rows:
+                # 1. CLIP Vector (Vibe)
                 vecs = [np.frombuffer(r[0], dtype=np.float32) for r in rows]
                 mv = np.mean(vecs, axis=0); mv = mv / (np.linalg.norm(mv) + 1e-10)
-                conn.execute("UPDATE identities SET vector=?, count=?, cover_path=? WHERE id=?", (mv.tobytes(), len(rows), anchors[0], id_id))
+                
+                # 2. Face Vector (Identity) - Extract from the NEWEST anchor (cover)
+                face_vec_blob = None
+                try:
+                    cover_full_path = DREAM_BOX / anchors[0]
+                    if cover_full_path.exists():
+                        img = Image.open(cover_full_path)
+                        img = ImageOps.exif_transpose(img).convert("RGB")
+                        # MediaPipe Detect
+                        faces = face_ai.detect(np.array(img))
+                        if faces:
+                            # Pick largest face
+                            largest = max(faces, key=lambda f: (f['bbox'][2]-f['bbox'][0]) * (f['bbox'][3]-f['bbox'][1]))
+                            x1, y1, x2, y2 = largest['bbox']
+                            
+                            # CLIP Encode Crop
+                            face_crop = img.crop((x1, y1, x2, y2))
+                            embedding = ai.encode_image([face_crop])[0]
+                            
+                            face_vec_blob = embedding.tobytes()
+                            print(f"🗿 [TEACH] Captured CLIP-Face Vector for {name}")
+                except Exception as e:
+                    print(f"⚠️ Face Teach Error: {e}")
+                    traceback.print_exc()
+
+                # Update DB (Keep existing vector if face extraction fails)
+                if face_vec_blob:
+                    conn.execute("UPDATE identities SET vector=?, face_vector=?, count=?, cover_path=? WHERE id=?", (mv.tobytes(), face_vec_blob, len(rows), anchors[0], id_id))
+                else:
+                    conn.execute("UPDATE identities SET vector=?, count=?, cover_path=? WHERE id=?", (mv.tobytes(), len(rows), anchors[0], id_id))
+            
             conn.commit()
         return {"status": "learned", "id": id_id}
     except Exception as e: return {"status": "error", "msg": str(e)}
@@ -250,7 +362,8 @@ async def search_by_seed(path: str, threshold: float = 0.22):
         seed_row = conn.execute("SELECT vector FROM assets WHERE path = ?", (path,)).fetchone()
         if not seed_row: return []
         seed_vec = torch.tensor(np.frombuffer(seed_row['vector'], dtype=np.float32)).to(ai.device)
-        all_assets = conn.execute("SELECT * FROM assets WHERE is_captured = 0").fetchall()
+        # 🛡️ SAFETY FIX: Filter NULL vectors
+        all_assets = conn.execute("SELECT * FROM assets WHERE is_captured = 0 AND vector IS NOT NULL").fetchall()
     if not all_assets: return []
     db_v = torch.tensor(np.array([np.frombuffer(r['vector'], dtype=np.float32) for r in all_assets])).to(ai.device)
     scores = util.cos_sim(seed_vec, db_v)[0].cpu().tolist()
@@ -262,5 +375,72 @@ async def search_by_seed(path: str, threshold: float = 0.22):
     results.sort(key=lambda x: x['score'], reverse=True)
     return results[:200]
 
+@router.post("/identities/cluster/tag")
+async def tag_cluster(req: dict = Body(...)):
+    """
+    Mass-tags a cluster of assets with a name.
+    """
+    try:
+        name, anchors = req.get('name'), req.get('anchors', [])
+        if not name or not anchors: return {"status": "error", "msg": "Missing data"}
+        
+        # Reuse teach logic (it handles insert/update/vector calc)
+        return await teach_identity({"name": name, "anchors": anchors})
+    except Exception as e: return {"status": "error", "msg": str(e)}
+
+from sklearn.cluster import DBSCAN
+
 @router.post("/weave")
 async def weave(req: dict = Body(...)): return []
+
+@router.get("/faces/unidentified")
+async def get_unidentified_faces():
+    """
+    Clusters unidentified faces using DBSCAN on asset vectors.
+    """
+    try:
+        with get_conn() as conn:
+            # 1. Get untagged assets that have faces
+            # (In simplified mode, we use the main vector as proxy)
+            rows = conn.execute("""
+                SELECT id, path, vector, thumb_path 
+                FROM assets 
+                WHERE face_count > 0 
+                AND path NOT IN (SELECT asset_path FROM identity_links)
+                LIMIT 1000
+            """).fetchall()
+            
+            if not rows: return []
+
+            # 2. Prepare Vectors
+            ids = [r['id'] for r in rows]
+            vecs = np.array([np.frombuffer(r['vector'], dtype=np.float32) for r in rows])
+            
+            # 3. Cluster (DBSCAN is great for "unknown number of groups")
+            # eps=0.15 (similarity threshold), min_samples=3 (needs 3 photos to form a group)
+            clustering = DBSCAN(eps=0.15, min_samples=3, metric='cosine').fit(vecs)
+            labels = clustering.labels_
+
+            # 4. Group by Label
+            clusters = {}
+            for idx, label in enumerate(labels):
+                if label == -1: continue # Noise
+                if label not in clusters:
+                    clusters[label] = {
+                        "id": int(label),
+                        "count": 0,
+                        "thumb": f"/thumbs/{rows[idx]['thumb_path']}",
+                        "examples": []
+                    }
+                clusters[label]["count"] += 1
+                if len(clusters[label]["examples"]) < 5:
+                    clusters[label]["examples"].append(rows[idx]['path'])
+
+            # 5. Sort by size
+            result = sorted(clusters.values(), key=lambda x: x['count'], reverse=True)
+            return result
+
+    except Exception as e:
+        print(f"Cluster Error: {e}")
+        traceback.print_exc()
+        return []

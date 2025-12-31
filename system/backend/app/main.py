@@ -26,7 +26,7 @@ logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     console.print(Panel.fit(
-        f"[bold cyan]🌌 DREAM OS KERNEL v7.4.1[/bold cyan]\n[dim]Omni-Platform Intelligence: {ai.device.upper()}[/dim]",
+        f"[bold cyan]🎭 DREAM THEATER KERNEL v7.7.0[/bold cyan]\n[dim]Omni-Platform Intelligence: {ai.device.upper()}[/dim]",
         border_style="blue"
     ))
     ai.load()
@@ -40,10 +40,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.middleware("http")
 async def add_cors_header(request, call_next):
-    if request.method == "OPTIONS":
-        response = Response()
-    else:
-        response = await call_next(request)
+    response = await call_next(request)
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "*"
